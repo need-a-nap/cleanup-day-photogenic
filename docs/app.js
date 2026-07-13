@@ -27,7 +27,22 @@ function imageUrl(path) {
 
 let posts = [];
 let compressed = null; // { blob, dataUrl, width, height, bytes }
+
+// { [postId]: "reactionKey" } — 게시물당 반응 1개 (구버전 {key:true} 형식도 읽어줌)
 const myReactions = JSON.parse(localStorage.getItem("cleanup_reactions") || "{}");
+function myReactionOf(postId) {
+  const v = myReactions[postId];
+  if (!v) return null;
+  if (typeof v === "string") return v;
+  return Object.keys(v).find((k) => v[k]) || null;
+}
+function saveMyReactions() {
+  localStorage.setItem("cleanup_reactions", JSON.stringify(myReactions));
+}
+
+function hasPosted() {
+  return !!localStorage.getItem("cleanup_my_post");
+}
 
 /* ─── 비눗방울 배경 ─────────────────────── */
 (function makeBubbles() {
@@ -117,14 +132,14 @@ function makeCard(post) {
 
   const bar = document.createElement("div");
   bar.className = "reactions";
-  const mine = myReactions[post.id] || {};
+  const mineKey = myReactionOf(post.id);
   for (const r of REACTIONS) {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "reaction-btn" + (mine[r.key] ? " on" : "");
+    btn.className = "reaction-btn" + (mineKey === r.key ? " on" : "");
     const count = (post.reactions && post.reactions[r.key]) || 0;
     btn.innerHTML = `<span>${r.emoji}</span><span class="rlabel">${r.label}</span><span class="cnt">${count || ""}</span>`;
-    btn.addEventListener("click", () => onReact(post, r.key, btn));
+    btn.addEventListener("click", () => onReact(post, r.key, bar));
     bar.appendChild(btn);
   }
   card.appendChild(bar);
@@ -174,6 +189,12 @@ async function loadPosts(silent = false) {
       .limit(500);
     if (error) throw error;
     posts = data;
+    // 내 게시물이 관리자에 의해 삭제됐으면 다시 올릴 수 있게 해제
+    const myId = localStorage.getItem("cleanup_my_post");
+    if (myId && posts.length < 500 && !posts.some((p) => p.id === myId)) {
+      localStorage.removeItem("cleanup_my_post");
+      refreshUploadButtons();
+    }
     $("loading").hidden = true;
     render();
   } catch {
@@ -182,34 +203,56 @@ async function loadPosts(silent = false) {
   }
 }
 
-async function onReact(post, key, btn) {
-  const mine = myReactions[post.id] || (myReactions[post.id] = {});
-  const turningOn = !mine[key];
-  const delta = turningOn ? 1 : -1;
+function barButton(bar, key) {
+  return bar.children[REACTIONS.findIndex((r) => r.key === key)];
+}
 
-  // 낙관적 업데이트
-  if (turningOn) mine[key] = true;
-  else delete mine[key];
-  localStorage.setItem("cleanup_reactions", JSON.stringify(myReactions));
-  post.reactions = post.reactions || {};
-  post.reactions[key] = Math.max(0, (post.reactions[key] || 0) + delta);
-  btn.classList.toggle("on", turningOn);
-  btn.classList.remove("bump");
-  void btn.offsetWidth;
-  btn.classList.add("bump");
-  btn.querySelector(".cnt").textContent = post.reactions[key] || "";
+function refreshBar(bar, post) {
+  const mineKey = myReactionOf(post.id);
+  for (const r of REACTIONS) {
+    const b = barButton(bar, r.key);
+    b.classList.toggle("on", mineKey === r.key);
+    b.querySelector(".cnt").textContent = (post.reactions && post.reactions[r.key]) || "";
+  }
+}
 
+async function sendReaction(post, key, delta) {
   try {
     const { data, error } = await sb.rpc("increment_reaction", {
       post_id: post.id,
       reaction_key: key,
       delta,
     });
-    if (!error && data) {
-      post.reactions = data;
-      btn.querySelector(".cnt").textContent = post.reactions[key] || "";
-    }
+    if (!error && data) post.reactions = data;
   } catch { /* 오프라인이어도 낙관적 상태 유지 */ }
+}
+
+// 게시물당 반응 1개: 다른 반응을 누르면 기존 반응은 자동 해제
+async function onReact(post, key, bar) {
+  const prev = myReactionOf(post.id);
+  post.reactions = post.reactions || {};
+
+  if (prev === key) {
+    // 같은 반응 다시 누름 → 해제
+    delete myReactions[post.id];
+    saveMyReactions();
+    post.reactions[key] = Math.max(0, (post.reactions[key] || 0) - 1);
+    refreshBar(bar, post);
+    await sendReaction(post, key, -1);
+  } else {
+    myReactions[post.id] = key;
+    saveMyReactions();
+    if (prev) post.reactions[prev] = Math.max(0, (post.reactions[prev] || 0) - 1);
+    post.reactions[key] = (post.reactions[key] || 0) + 1;
+    refreshBar(bar, post);
+    const btn = barButton(bar, key);
+    btn.classList.remove("bump");
+    void btn.offsetWidth;
+    btn.classList.add("bump");
+    if (prev) await sendReaction(post, prev, -1);
+    await sendReaction(post, key, 1);
+  }
+  refreshBar(bar, post);
 }
 
 /* ─── 이미지 압축 ───────────────────────── */
@@ -259,7 +302,22 @@ async function compressImage(file) {
 /* ─── 업로드 모달 ───────────────────────── */
 const modal = $("uploadModal");
 
+// 1인(기기) 1장 제한: 게시 후 업로드 버튼 비활성 표시
+function refreshUploadButtons() {
+  const done = hasPosted();
+  const top = $("openUploadTop");
+  const fab = $("openUploadFab");
+  top.classList.toggle("done", done);
+  fab.classList.toggle("done", done);
+  top.textContent = done ? "💚 게시 완료 (1인 1장)" : "📸 내 사진 올리기";
+  fab.textContent = done ? "💚 게시 완료" : "📸 사진 올리기";
+}
+
 function openModal() {
+  if (hasPosted()) {
+    toast("한 사람당 한 장만 게시할 수 있어요 🙏");
+    return;
+  }
   modal.hidden = false;
   $("nicknameInput").value = localStorage.getItem("cleanup_nickname") || "";
   document.body.style.overflow = "hidden";
@@ -304,6 +362,7 @@ $("photoInput").addEventListener("change", async (e) => {
 $("submitBtn").addEventListener("click", async () => {
   const nickname = $("nicknameInput").value.trim().slice(0, 20);
   const memo = $("memoInput").value.trim().slice(0, 200);
+  if (hasPosted()) { closeModal(); return toast("한 사람당 한 장만 게시할 수 있어요 🙏"); }
   if (!compressed) return toast("사진을 먼저 선택해주세요 📸");
   if (!nickname) return toast("닉네임을 입력해주세요 ✏️");
 
@@ -334,6 +393,8 @@ $("submitBtn").addEventListener("click", async () => {
     if (insErr) throw new Error("게시물 저장에 실패했어요");
 
     localStorage.setItem("cleanup_nickname", nickname);
+    localStorage.setItem("cleanup_my_post", data.id);
+    refreshUploadButtons();
     posts.unshift(data);
     render();
     resetForm();
@@ -361,6 +422,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ─── 시작 & 주기적 새로고침 ────────────── */
+refreshUploadButtons();
 if (!configured) {
   $("loading").textContent = "⚙️ 설정이 필요해요 — config.js에 Supabase 주소와 키를 넣어주세요";
 } else {

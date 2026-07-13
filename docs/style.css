@@ -132,6 +132,13 @@ body {
 .btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
 .btn-block { width: 100%; margin-top: 4px; }
 
+.btn-primary.done, .fab.done {
+  background: linear-gradient(135deg, #a7c4bc, #b9d3d9);
+  box-shadow: none;
+  cursor: default;
+}
+.btn-primary.done:hover, .fab.done:hover { transform: none; box-shadow: none; }
+
 .fab {
   display: none;
   position: fixed;
