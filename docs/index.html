@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>클린업데이 포토제닉 🫧</title>
+  <meta name="description" content="신사옥 이전 기념 클린업데이 포토제닉 이벤트 — 우리들의 정리 순간을 남겨주세요!" />
+  <meta property="og:title" content="클린업데이 포토제닉 🫧" />
+  <meta property="og:description" content="신사옥 이전 기념! 클린업 현장을 폴라로이드로 남겨주세요." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫧</text></svg>" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 비눗방울 배경 -->
+  <div id="bubbles" aria-hidden="true"></div>
+
+  <header class="hero">
+    <p class="hero-badge">✨ 신사옥 이전 기념 이벤트</p>
+    <h1 class="hero-title">클린업데이<span class="hero-title-accent">포토제닉</span></h1>
+    <p class="hero-sub">버리고, 비우고, 빛나는 순간을 폴라로이드로 남겨주세요 🫧</p>
+    <div class="hero-actions">
+      <button id="openUploadTop" class="btn-primary" type="button">📸 내 사진 올리기</button>
+      <span id="postCount" class="post-count"></span>
+    </div>
+  </header>
+
+  <main>
+    <div id="wall" class="wall" aria-live="polite"></div>
+    <div id="emptyState" class="empty-state" hidden>
+      <p class="empty-emoji">🧹</p>
+      <p class="empty-text">아직 붙은 사진이 없어요.<br />첫 번째 폴라로이드의 주인공이 되어보세요!</p>
+    </div>
+    <div id="loading" class="loading">사진 벽을 닦는 중… 🫧</div>
+  </main>
+
+  <!-- 모바일 플로팅 버튼 -->
+  <button id="openUploadFab" class="fab" type="button" aria-label="사진 올리기">📸 사진 올리기</button>
+
+  <!-- 업로드 모달 -->
+  <div id="uploadModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button class="modal-close" type="button" data-close aria-label="닫기">✕</button>
+      <h2 id="modalTitle" class="modal-title">폴라로이드 붙이기</h2>
+
+      <label class="photo-drop" id="photoDrop">
+        <input id="photoInput" type="file" accept="image/*" hidden />
+        <div id="photoPlaceholder" class="photo-placeholder">
+          <span class="photo-placeholder-emoji">🖼️</span>
+          <span>탭해서 사진 선택 / 촬영</span>
+          <small>업로드 전에 자동으로 가볍게 압축돼요</small>
+        </div>
+        <img id="photoPreview" class="photo-preview" alt="" hidden />
+      </label>
+      <p id="photoInfo" class="photo-info"></p>
+
+      <div class="field">
+        <label for="nicknameInput">닉네임</label>
+        <input id="nicknameInput" type="text" maxlength="20" placeholder="예) 청소요정" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="memoInput">한 줄 메모 <span class="field-hint">(선택, 200자)</span></label>
+        <textarea id="memoInput" maxlength="200" rows="2" placeholder="예) 10년 묵은 서류와 작별했습니다…"></textarea>
+      </div>
+
+      <button id="submitBtn" class="btn-primary btn-block" type="button">벽에 붙이기 🩹</button>
+    </div>
+  </div>
+
+  <!-- 사진 크게 보기 -->
+  <div id="lightbox" class="lightbox" hidden>
+    <img id="lightboxImg" alt="" />
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <footer class="footer">🧼 Clean-up Day Photogenic · 새 보금자리로 가볍게!</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
