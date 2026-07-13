@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Cafe24Shiningstar";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.1/Cafe24Shiningstar.woff") format("woff"),
+       url("https://cdn.jsdelivr.net/gh/fontbee/font@main/Cafe24/Cafe24Shiningstar.woff") format("woff");
+  font-weight: normal;
+  font-display: swap;
+}
+
 :root {
   --bg-top: #eaf7f4;
   --bg-bottom: #d9edfb;
@@ -8,7 +16,7 @@
   --sky: #38bdf8;
   --card: #fffdf8;
   --shadow: 0 10px 24px rgba(22, 57, 75, 0.16);
-  --accent-font: "Nanum Pen Script", "Pretendard Variable", cursive;
+  --accent-font: "Cafe24Shiningstar", "Pretendard Variable", cursive;
   --base-font: "Pretendard Variable", Pretendard, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -105,12 +113,6 @@ body {
   gap: 14px;
   flex-wrap: wrap;
 }
-.post-count {
-  font-size: 14px;
-  color: var(--ink-soft);
-  font-weight: 600;
-}
-
 /* ─── 버튼 ─────────────────────────────── */
 .btn-primary {
   border: 0;

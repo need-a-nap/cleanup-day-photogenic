@@ -134,7 +134,6 @@ function makeCard(post) {
 function render() {
   wall.innerHTML = "";
   $("emptyState").hidden = posts.length > 0;
-  $("postCount").textContent = posts.length ? `📌 ${posts.length}장의 순간` : "";
 
   const n = colCount();
   const cols = [];
